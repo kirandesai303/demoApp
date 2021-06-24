@@ -1,4 +1,4 @@
-import { Icon, Root } from 'native-base';
+import { Icon, Root, Toast } from 'native-base';
 import React, { useEffect, useState } from 'react';
 
 import {
@@ -11,21 +11,18 @@ import {
 import { Card, Header } from '../../components';
 import { Color } from '../../helper';
 import * as API from "../../services/Api";
-
 const Index = ({ navigation, route }) => {
-    const [userPosts, setUserPost] = useState()
+    const [userPosts, setUserPost] = useState([])
     const [usersId, setUserId] = useState()
-
     const { usersData } = route.params
+
     useEffect(() => {
         console.log('usersData__', usersData)
         setUserId(usersData.id)
         let userData = []
         API.usersPost(usersData.id)
             .then(response => {
-                console.log('response__', response)
                 userData.push(response.data)
-                console.log('data___', userData)
                 setUserPost(userData)
             })
             .catch(error => {
@@ -34,56 +31,100 @@ const Index = ({ navigation, route }) => {
             });
     }, [])
 
+    useEffect(() => {
+        let usersPost = []
+        if (userPosts) {
+            if (route.params.post) {
+                let usersPost = [...userPosts]
+                usersPost.push(route.params.post)
+                setUserPost([...usersPost])
+            }
+        } else {
+            usersPost.push(route.params.post)
+            setUserPost([...usersPost])
+        }
+
+    }, [route.params.post])
+
+    useEffect(() => {
+        let userPost = [...userPosts]
+        console.log('userPost____', userPost)
+        let filterPostIndex = userPost.findIndex((i) => i.id == route.params.postEdit.id)
+        console.log('userPost____', filterPostIndex)
+
+
+        userPost[filterPostIndex] = route.params.postEdit;
+        console.log('userPost____', userPost)
+        setUserPost([...userPost])
+
+
+    }, [route.params.postEdit])
     function addPost() {
         navigation.navigate('AddPost', { edit: false })
+    }
+    function ToastShow(msg) {
+        Toast.show({
+            text: msg,
+            type: 'danger'
+        })
     }
     function deletePost(id) {
         API.deletePost(id)
             .then(response => {
-                alert('Post deleted')
+                let userPost = [...userPosts]
+                let filterPostIndex = userPost.findIndex((i) => i.id == id)
+                userPost.splice(filterPostIndex, 1)
+                setUserPost(userPost)
+                ToastShow('Post deleted')
             })
             .catch(error => {
                 console.log(error);
             });
     }
     return (
-        <View style={{ flex: 1, backgroundColor: '#f1f6f8' }}>
-            <Header
-                back={true}
-                title={'User Post'}
-                onBackPress={() => navigation.goBack()}
-            />
-
-            <View style={{ paddingHorizontal: 10, marginTop: 10 }}>
-                <FlatList
-                    bounces={false}
-                    data={userPosts}
-                    contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 60 }}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={({ item, index }) =>
-                        <View style={styles.cardContaine}>
-                            <Text style={{ fontWeight: 'bold' }}>{item.title}</Text>
-                            <Text style={{ top: 3 }}>{item.body}</Text>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 15, }}>
-                                <TouchableOpacity
-                                    onPress={() => navigation.navigate('AddPost', { edit: true, data: item })}
-                                    style={styles.actionButton}>
-                                    <Text style={styles.textStyle}>Edit</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.actionButton} onPress={() => deletePost(item.id)}>
-                                    <Text style={styles.textStyle}>Delete</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    }
+        <Root>
+            <View style={{ flex: 1, backgroundColor: '#f1f6f8' }}>
+                <Header
+                    back={true}
+                    title={'User Post'}
+                    onBackPress={() => navigation.goBack()}
                 />
+                {userPosts.length > 0 ?
+                    <View style={{ paddingHorizontal: 10, marginTop: 10 }}>
+                        <FlatList
+                            bounces={false}
+                            data={userPosts}
+                            contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 60 }}
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item, index }) =>
+                                <View style={styles.cardContaine}>
+                                    <Text style={{ fontWeight: 'bold' }}>{item.title}</Text>
+                                    <Text style={{ top: 3 }}>{item.body}</Text>
+
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 15, }}>
+                                        <TouchableOpacity
+                                            onPress={() => navigation.navigate('AddPost', { edit: true, data: item, userId: usersId })}
+                                            style={styles.actionButton}>
+                                            <Text style={styles.textStyle}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.actionButton} onPress={() => deletePost(item.id)}>
+                                            <Text style={styles.textStyle}>Delete</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            }
+                        />
+                    </View> :
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ color: Color.gray8A8A8A }}>No Post available!</Text>
+                    </View>}
+                <TouchableOpacity
+                    onPress={() => addPost({ userId: usersId })}
+                    style={styles.buttonStyle}>
+                    <Text style={{ color: Color.White, fontSize: 25 }}>+</Text>
+                </TouchableOpacity>
             </View>
-            <TouchableOpacity
-                onPress={() => addPost({ userId: usersId })}
-                style={styles.buttonStyle}>
-                <Text style={{ color: Color.White, fontSize: 25 }}>+</Text>
-            </TouchableOpacity>
-        </View>
+        </Root>
 
     )
 }
@@ -104,7 +145,7 @@ const styles = StyleSheet.create({
         shadowOffset: {
             width: 0,
             height: 2
-        }, borderRadius: 3, backgroundColor: Color.White, paddingHorizontal: 10, paddingVertical: 15
+        }, borderRadius: 3, backgroundColor: Color.White, paddingHorizontal: 10, paddingVertical: 15, marginVertical: 7
     }
 })
 export default Index

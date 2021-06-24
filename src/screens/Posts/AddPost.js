@@ -38,20 +38,21 @@ const AddUser = ({ navigation, route }) => {
         })
     }
     function createPost() {
+
         if (!title) {
             ToastShow('Please enter Post title')
         } else {
             var regex = /^[A-Za-z0-9 ]+$/
             if (body && regex.test(body)) {
                 const data = {
+                    id: Math.random(),
                     userId: route.params.userId,
                     title: title,
                     body: body,
                 };
                 API.addPost(data)
                     .then(response => {
-                        alert('Post added')
-
+                        navigation.navigate('Post', { post: data })
                     })
                     .catch(error => {
                         console.log(error);
@@ -63,23 +64,22 @@ const AddUser = ({ navigation, route }) => {
         }
     }
     function editPost() {
+        console.log('route__', route.params)
         const data = {
-            id: 1,
+            id: route.params.data.id,
             userId: route.params.userId,
             title: title,
             body: body,
         };
         API.updatePost(data, route.params.data.id)
             .then(response => {
-                console.log('response__', response)
-                alert('Post Updated')
-
+                navigation.navigate('Post', { postEdit: data })
             })
             .catch(error => {
                 console.log(error);
-
             });
     }
+
     return (
         <Root>
             <SafeAreaView >
@@ -107,7 +107,7 @@ const AddUser = ({ navigation, route }) => {
                             multiline={true}
                         />
                         <TouchableOpacity style={styles.buttonStyle} onPress={() => { route.params.edit ? editPost() : createPost() }} >
-                            <Text style={{ color: Color.White }}>Add Post</Text>
+                            <Text style={{ color: Color.White }}>{route.params.edit ? 'Edit Post' : 'Add Post'}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
